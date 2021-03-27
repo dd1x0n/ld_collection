@@ -25,7 +25,7 @@ popularity.reverse()
 
 plt.bar(genres, popularity)
 
-plt.title("Top 10 Most Popular Genres in Collection")
+plt.title("Top Ten Most Popular Genres in this collection!")
 plt.xlabel("Amount in Collection")
 
 plt.tight_layout()

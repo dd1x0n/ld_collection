@@ -10,7 +10,7 @@
 
 > Users simply need to navigate to menu.py, and run application via 'python menu.py' (or 'python3 menu.py' if their system requires it).
 
-> application is hosted at  https://github.com/dd1x0n/ld_collection.git 
+> application is hosted at  https://github.com/dd1x0n/ld_collection/tree/main
 
 ## Code Samples
 
