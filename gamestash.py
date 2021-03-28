@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 plt.style.use("bmh")
 
-#Plot/graph req.
+#Plot/graph req. + matplotlib "Stretch” Feature"
 
 with open ('games.csv') as csv_file:
     csv_reader = csv.DictReader(csv_file)

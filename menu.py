@@ -14,11 +14,11 @@ def menu():
     print("")
     print(W+"*/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\*")
     print("")
-    print(P+"                E N T E R:                 ")
+    print(P+"                E N T E R 1 - 9 to:                 ")
     print("")
     print(B+" - 1 to view entire collection - ")
     print("")
-    print(G+" - 2 to search By Title (Case Sensitive) - ")
+    print(G+" - 2 to search By film title - ")
     print("")
     print(O+" - 3 to see total number of games in collection - ")
     print("")
@@ -54,6 +54,9 @@ while option != 0:
         print ("You Chose to view the entire collection.")
 
     elif option == 2:
+        print()
+        print("Seach is case sensitive! ")
+        print()
 
         df = pd.read_csv('collection.csv')
 

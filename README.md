@@ -22,10 +22,17 @@
 
 > Read data from an external file, such as text, JSON, CSV, etc and use that data in your application - this application read from two .csv files, collection.csv & games.csv. 
 
-> Analyze text and display information about it (ex: how many words in a paragraph - program counts the total amount of items in both .csv collections. 
+> Analyze text and display information about it (ex: how many words in a paragraph - program counts the total amount of media in both .csv collections. 
 
 > Visualize data in a graph, chart, or other visual representation of data - two Bar Charts are used with data populated from both .csv files to visualize amount of a particular genre of film and video game system with the most games. 
 
+> Use pandas, matplotlib, and/or numpy to perform a data analysis project. Ingest 2 or more pieces of data, analyze that data in some manner, and display a new result to a graph, chart, or other display - This is used in the graphing feature that uses matplotlib to help parse data from the CSV files and graph them. 
+
+
 ## Future Additions
 
->Check back later!!!!
+> Optimied search
+> Search by ref number/other paramaters 
+> Nested menus (ran out of time)
+> API conection to Price Charting
+> Export Feature 
