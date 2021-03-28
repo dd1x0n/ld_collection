@@ -69,11 +69,15 @@ while option != 0:
         print("")
         print("There are " + str(lines) + " Videogames in this n.")
 
-    elif option == 4: 
+    elif option == 4:
+        print()
+        print("Please choose from the following, remember, they're case sensitive!")
+        print()
+        print("Action - Anime - Comedy - Drama - Family - Holiday - Romance ")
+        print() 
         df = pd.read_csv('collection.csv')
 
         genre = df[(df['Genre'] == input("Search for a genre: "))]
-
         print((genre))
     
     elif option == 5:
