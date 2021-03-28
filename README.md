@@ -26,13 +26,15 @@
 
 > Visualize data in a graph, chart, or other visual representation of data - two Bar Charts are used with data populated from both .csv files to visualize amount of a particular genre of film and video game system with the most games. 
 
-> Use pandas, matplotlib, and/or numpy to perform a data analysis project. Ingest 2 or more pieces of data, analyze that data in some manner, and display a new result to a graph, chart, or other display - This is used in the graphing feature that uses matplotlib to help parse data from the CSV files and graph them. 
+> Use pandas, matplotlib, and/or numpy to perform a data analysis project. Ingest 2 or more pieces of data, analyze that data in some manner, and display a new result to a graph, chart, or other display - This is seen in gamestash.py gmz.py &  feature using matplotlib to display data from the CSV files and graph them. 
 
 
 # Future Additions:
 
-> Optimied search
-> Search by ref number/other paramaters 
+> Optimized search
+> Search by ref number/other parameters 
 > Nested menus (ran out of time)
-> API conection to Price Charting
+> API connection to Price Charting
 > Export Feature 
+
+Built in Python 3.9 w/ macOS & OpenBSD in 2021 for Code Louisville Python capstone project.
