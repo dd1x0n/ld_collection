@@ -58,6 +58,7 @@ while option != 0:
         print("Seach is case sensitive! ")
         print()
 
+        #First of many instances of reading from a CSV
         df = pd.read_csv('collection.csv')
 
         title = df[(df['Title'] == input("Search for a Title: "))]
@@ -87,6 +88,7 @@ while option != 0:
         print()
         print("1900-1999, these are Laserdiscs afterall...")
         print()
+        #reading from a CSV
         df = pd.read_csv('collection.csv')
 
         release = df[(df['Release'] == input("Search for a release year: "))]
@@ -100,6 +102,7 @@ while option != 0:
         exec(open('gamestash.py').read())
     
     elif option == 8:
+        #reading from a CSV, well you get it now ;)
         with open("collection.csv") as f:
             lines = sum(1 for line in f)
             line_number = random.randrange(lines)

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-> A console application that allows users to search though two .csv dataframes. 
+> A console application that allows users to search, graph and read CSV dataframes. Uses both Pandas and Python3 baked in CSV search feature.  
 
 ## How to run
 
