@@ -16,11 +16,11 @@ application is hosted at  https://github.com/dd1x0n/ld_collection/tree/main
 
 > Implement a “master loop” console application where the user can repeatedly enter commands/perform actions, including choosing to exit the program 
 
-    - master loop is in the main menu of program.
+    - master loop is seen in menu.py.
 
 > Create a class, then create at least one object of that class and populate it with data. The value of at least one object must be used somewhere in your code 
 
-    - classes are used thought the program, value generated and parsed from both .csv files are used in order to properly graph data. 
+    - classes are used throughout the program, value generated and parsed from both .csv files are used to properly graph data. 
 
 > Create a dictionary or list, populate it with several values, retrieve at least one value, and use it in your program 
 
