@@ -1,10 +1,10 @@
 # Film & Videogame Libary Console App
 
-## Introduction
+# Intro:
 
 > A console application that allows users to search, graph and read CSV dataframes. Uses both Pandas and Python3 baked in CSV search feature.  
 
-## How to run
+# How to run:
 
 > Users must have Pandas installed if not already on machine. Can be installed via [pip install pandas]
 
@@ -12,7 +12,7 @@
 
 > application is hosted at  https://github.com/dd1x0n/ld_collection/tree/main
 
-## Code Samples
+# Project Requirements:
 
 > Implement a “master loop” console application where the user can repeatedly enter commands/perform actions, including choosing to exit the program - master loop is in the main menu of program.
 
@@ -29,7 +29,7 @@
 > Use pandas, matplotlib, and/or numpy to perform a data analysis project. Ingest 2 or more pieces of data, analyze that data in some manner, and display a new result to a graph, chart, or other display - This is used in the graphing feature that uses matplotlib to help parse data from the CSV files and graph them. 
 
 
-## Future Additions
+# Future Additions:
 
 > Optimied search
 > Search by ref number/other paramaters 
