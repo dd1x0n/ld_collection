@@ -6,7 +6,7 @@ A console application that allows users to search, graph and read CSV dataframes
 
 # How to run:
 
-Users must have Pandas installed if not already on machine. Can be installed via [pip install pandas]
+Users must have Pandas & matplotlib installed if not already on machine. Can be installed with pip (or your preferred package manager) via [pip install pandas] & [pip install matplotlib]
 
 Users simply need to navigate to menu.py, and run application via 'python menu.py' (or 'python3 menu.py' if their system requires it).
 
