@@ -2,7 +2,7 @@
 
 # Intro:
 
-A console application that allows users to search, graph and read CSV dataframes. Uses both Pandas and Python3 baked in CSV search feature.  
+A console application that allows users to search, graph and read CSV dataframes. Uses both Pandas, matplotlib and Python3's baked in CSV search feature. Data for the project was pulled from lddb.com and refactored in order to work well with this project. I was in need of a searching software that wasn't hosted online so using Python to accomplish this was perfect. 
 
 # How to run:
 
@@ -45,10 +45,10 @@ application is hosted at  https://github.com/dd1x0n/ld_collection.git
 
 # Future Additions:
 
-> Optimized search
-> Search by ref number/other parameters 
-> Nested menus (ran out of time)
-> API connection to Price Charting
-> Export Feature 
+-Optimized search
+-Search by ref number/other parameters 
+-Nested menus (ran out of time)
+-API connection to Price Charting
+-Export Feature 
 
            Built w/ Python 3.9 on macOS & OpenBSD for Code Lou Spring 2021.
