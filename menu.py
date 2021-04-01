@@ -12,9 +12,12 @@ P  = '\033[35m'
 
 def menu():
     print("")
-    print(W+"*/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\*")
+    print(W+"*********************************************************")
     print("")
-    print(P+"                E N T E R 1 - 9 to:                 ")
+    print(P+"                E N T E R: 1 - 9 to                     ")
+    print("")
+    print(W+"*********************************************************")
+    print("")
     print("")
     print(B+" - 1 to view entire collection - ")
     print("")
@@ -33,7 +36,7 @@ def menu():
     print(O+" - 8 see total amount of LaserDiscs in collection - ")
     print("")
     print(R+" - - 0 to QUIT - - ")
-    print(W+"___________________________________________________")
+    print(W+"_________________________________________________________")
     print("")
 
 menu()
@@ -43,7 +46,7 @@ option = int(input("Enter your choice: "))
 while option != 0:
     if option == 1:
         
-        with open('collection.csv', 'r') as csv_file:
+        with open('collection.csv', 'r', encoding='utf8') as csv_file:
             csv_reader = csv.reader(csv_file)
 
             #next(csv_reader)
@@ -59,7 +62,7 @@ while option != 0:
         print()
 
         #First of many instances of reading from a CSV
-        df = pd.read_csv('collection.csv')
+        df = pd.read_csv('collection.csv', encoding='utf8')
 
         title = df[(df['Title'] == input("Search for a Title: "))]
 
@@ -67,7 +70,7 @@ while option != 0:
 
     elif option == 3:
 
-        with open("games.csv") as f:
+        with open("games.csv", encoding='utf8') as f:
             lines = sum(1 for line in f)
             line_number = random.randrange(lines)
         print("")
@@ -79,7 +82,7 @@ while option != 0:
         print()
         print("Action - Anime - Comedy - Drama - Family - Holiday - Romance ")
         print() 
-        df = pd.read_csv('collection.csv')
+        df = pd.read_csv('collection.csv' ,encoding='utf8')
 
         genre = df[(df['Genre'] == input("Search for a genre: "))]
         print((genre))
@@ -89,7 +92,7 @@ while option != 0:
         print("1900-1999, these are Laserdiscs afterall...")
         print()
         #reading from a CSV
-        df = pd.read_csv('collection.csv')
+        df = pd.read_csv('collection.csv', encoding='utf8')
 
         release = df[(df['Release'] == input("Search for a release year: "))]
 
@@ -103,7 +106,7 @@ while option != 0:
     
     elif option == 8:
         #reading from a CSV, well you get it now ;)
-        with open("collection.csv") as f:
+        with open("collection.csv", encoding='utf8') as f:
             lines = sum(1 for line in f)
             line_number = random.randrange(lines)
         print()
