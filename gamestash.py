@@ -13,7 +13,9 @@ with open ('games.csv') as csv_file:
     system_counter = Counter()
 
     for row in csv_reader:
-        system_counter.update(row['System'].split(','))
+        systems_field = row.get('System')
+        if systems_field:
+            system_counter.update([s.strip() for s in systems_field.split(',') if s.strip()])
 
 #Populate a List
 systems =[]

@@ -217,36 +217,47 @@ def load_films():
 
 
 def load_game_file(path):
+  try:
+    df = pd.read_csv(path, encoding='utf8')
+  except Exception:
+    return None
+
+  # Preserve all columns; just normalize header strings
+  df.columns = [str(c).strip() for c in df.columns]
+  # If there are at least two columns but no explicit 'Game' header,
+  # keep original headers rather than forcing rename — callers may
+  # prefer the CSV's schema.
+  return df.copy()
+
+
+def load_game_file_v2(path):
+    """Replacement loader that preserves all CSV columns."""
     try:
         df = pd.read_csv(path, encoding='utf8')
     except Exception:
         return None
-
     df.columns = [str(c).strip() for c in df.columns]
-    if 'Game' in df.columns and 'System' in df.columns:
-        return df[['Game', 'System']].copy()
-    if len(df.columns) >= 2:
-        df = df.iloc[:, :2].copy()
-        df.columns = ['Game', 'System']
-        return df
-    return None
+    return df.copy()
 
 
 def load_games():
-    frames = []
-    sources = []
-    for candidate in GAME_CSV_CANDIDATES:
-        if os.path.isfile(candidate) and detect_csv_type(candidate) == 'game':
-            frame = load_game_file(candidate)
-            if frame is not None:
-                frames.append(frame)
-                sources.append(candidate)
-    if not frames:
-        return None, None
+  frames = []
+  sources = []
+  for candidate in GAME_CSV_CANDIDATES:
+    if os.path.isfile(candidate) and detect_csv_type(candidate) == 'game':
+      try:
+        df = pd.read_csv(candidate, encoding='utf8')
+      except Exception:
+        continue
+      df.columns = [str(c).strip() for c in df.columns]
+      frames.append(df)
+      sources.append(candidate)
+  if not frames:
+    return None, None
 
-    result = pd.concat(frames, ignore_index=True)
-    result.drop_duplicates(inplace=True)
-    return result, sources
+  result = pd.concat(frames, ignore_index=True, sort=False)
+  result.drop_duplicates(inplace=True)
+  return result, sources
 
 
 def get_search_fields(df):
@@ -263,13 +274,38 @@ def render_html(content):
     return render_template_string(BASE_TEMPLATE, content=Markup(content))
 
 
-def render_collection_table(df, caption=None):
-    html = '<div class="table-wrapper">'
-    html += df.to_html(index=False, classes='collection-table', escape=False)
-    html += '</div>'
-    if caption:
-        html = f'<p>{caption}</p>' + html
-    return html
+def render_collection_table(df, caption=None, base_url='', current_sort=None, current_order='asc'):
+  # Build a table with clickable headers that toggle sort order.
+  def _col_link(col):
+    next_order = 'desc' if (current_sort == col and current_order == 'asc') else 'asc'
+    if base_url:
+      return f'{base_url}?sort={col}&order={next_order}'
+    return f'?sort={col}&order={next_order}'
+
+  html = '<div class="table-wrapper">'
+  # Header
+  html += '<table class="collection-table">'
+  html += '<thead><tr>'
+  for col in df.columns:
+    indicator = ''
+    if current_sort == col:
+      indicator = ' ▲' if current_order == 'asc' else ' ▼'
+    link = _col_link(col)
+    html += f'<th><a href="{link}">{col}{indicator}</a></th>'
+  html += '</tr></thead>'
+  # Body
+  html += '<tbody>'
+  for _, row in df.fillna('').iterrows():
+    html += '<tr>'
+    for col in df.columns:
+      cell = str(row[col])
+      html += f'<td>{cell}</td>'
+    html += '</tr>'
+  html += '</tbody></table>'
+  html += '</div>'
+  if caption:
+    html = f'<p>{caption}</p>' + html
+  return html
 
 
 def append_row_to_csv(path, row_dict, columns=None):
@@ -321,8 +357,18 @@ def films():
     if df is None:
         return render_html('<h2>Film Collection</h2><p class="fallback">No film CSV could be loaded. Check that one of ld_collection.csv, LD_collection.csv, or collection.csv exists with Title and Genre columns.</p>')
 
+    # Sorting
+    sort = request.args.get('sort')
+    order = request.args.get('order', 'asc')
+    if sort in df.columns:
+        # Attempt numeric conversion for smart sorting
+        col_series = pd.to_numeric(df[sort], errors='coerce')
+        if col_series.notna().sum() > 0:
+            df[sort] = col_series
+        df = df.sort_values(by=sort, ascending=(order == 'asc'))
+
     content = f'<h2>Film Collection</h2><p>Loaded from: <strong>{path}</strong></p>'
-    content += render_collection_table(df)
+    content += render_collection_table(df, base_url='/films', current_sort=sort, current_order=order)
     return render_html(content)
 
 
@@ -332,8 +378,17 @@ def games():
     if df is None:
         return render_html('<h2>Game Collection</h2><p class="fallback">No game CSV could be loaded. Check that games_2026.csv, games.csv, or collection.csv exists with Game and System columns.</p>')
 
+    # Sorting
+    sort = request.args.get('sort')
+    order = request.args.get('order', 'asc')
+    if sort in df.columns:
+        col_series = pd.to_numeric(df[sort], errors='coerce')
+        if col_series.notna().sum() > 0:
+            df[sort] = col_series
+        df = df.sort_values(by=sort, ascending=(order == 'asc'))
+
     content = f'<h2>Game Collection</h2><p>Loaded from: <strong>{", ".join(sources)}</strong></p>'
-    content += render_collection_table(df)
+    content += render_collection_table(df, base_url='/games', current_sort=sort, current_order=order)
     return render_html(content)
 
 
