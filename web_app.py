@@ -1,7 +1,9 @@
 import os
+import io
 import pandas as pd
-from flask import Flask, render_template_string, request
+from flask import Flask, render_template_string, request, send_file, make_response
 from markupsafe import Markup
+from matplotlib import pyplot as plt
 
 app = Flask(__name__)
 
@@ -162,6 +164,8 @@ BASE_TEMPLATE = '''<!doctype html>
         <a href="/">Home</a>
         <a href="/films">Films</a>
         <a href="/games">Games</a>
+        <a href="/add/film">Add Film</a>
+        <a href="/add/game">Add Game</a>
         <a href="/search/films">Search Films</a>
         <a href="/search/games">Search Games</a>
       </nav>
@@ -246,9 +250,14 @@ def load_games():
     return result, sources
 
 
-def get_film_search_fields(df):
+def get_search_fields(df):
+    # Return all columns but prefer some common film columns first for nicer ordering
     preferred = ['Title', 'Genre', 'Release', 'Year', 'Director', 'Rating']
-    return [field for field in preferred if field in df.columns] or list(df.columns[:3])
+    fields = list(df.columns)
+    # Move preferred fields to front if present
+    ordered = [f for f in preferred if f in fields]
+    ordered += [f for f in fields if f not in ordered]
+    return ordered
 
 
 def render_html(content):
@@ -262,6 +271,16 @@ def render_collection_table(df, caption=None):
     if caption:
         html = f'<p>{caption}</p>' + html
     return html
+
+
+def append_row_to_csv(path, row_dict, columns=None):
+    df_row = pd.DataFrame([row_dict])
+    write_header = not os.path.isfile(path)
+    # If columns provided, ensure ordering
+    if columns:
+        df_row = df_row.reindex(columns=columns)
+    os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+    df_row.to_csv(path, index=False, mode='a' if not write_header else 'w', header=write_header, encoding='utf8')
 
 
 @app.route('/')
@@ -295,6 +314,68 @@ def home():
     content += '<div class="callout">' + '<br>'.join(sources) + '</div>'
     content += '</div>'
     return render_html(content)
+
+
+@app.route('/graph/films/genres')
+def graph_films_genres():
+    df, path = load_films()
+    if df is None:
+        return render_html('<h2>Genre Graph</h2><p class="fallback">No film CSV could be loaded.</p>')
+
+    genre_counter = {}
+    if 'Genre' in df.columns:
+        for genre in df['Genre'].dropna():
+            for g in [g.strip() for g in str(genre).split(',') if g.strip()]:
+                genre_counter[g] = genre_counter.get(g, 0) + 1
+
+    if not genre_counter:
+        return render_html('<h2>Genre Graph</h2><p class="fallback">No genre data available to plot.</p>')
+
+    items = sorted(genre_counter.items(), key=lambda x: x[1], reverse=True)[:10]
+    genres, counts = zip(*items)
+    plt.style.use('bmh')
+    fig, ax = plt.subplots(figsize=(8, max(3, len(genres) * 0.4)))
+    ax.barh(list(reversed(genres)), list(reversed(counts)))
+    ax.set_title('Top Film Genres')
+    ax.set_xlabel('Number of Films')
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+
+@app.route('/graph/games/systems')
+def graph_games_systems():
+    df, sources = load_games()
+    if df is None:
+        return render_html('<h2>System Graph</h2><p class="fallback">No game CSV could be loaded.</p>')
+
+    system_counter = {}
+    if 'System' in df.columns:
+        for system in df['System'].dropna():
+            for s in [s.strip() for s in str(system).split(',') if s.strip()]:
+                system_counter[s] = system_counter.get(s, 0) + 1
+
+    if not system_counter:
+        return render_html('<h2>System Graph</h2><p class="fallback">No system data available to plot.</p>')
+
+    items = sorted(system_counter.items(), key=lambda x: x[1], reverse=True)[:15]
+    systems, counts = zip(*items)
+    plt.style.use('bmh')
+    fig, ax = plt.subplots(figsize=(8, max(3, len(systems) * 0.3)))
+    ax.barh(list(reversed(systems)), list(reversed(counts)))
+    ax.set_title('Top Game Systems')
+    ax.set_xlabel('Number of Games')
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
 
 
 @app.route('/films')
@@ -336,26 +417,38 @@ def search_collection(collection):
     query = ''
     field = None
     results = None
-    search_fields = get_film_search_fields(df) if collection == 'films' else ['Game']
+    search_fields = get_search_fields(df)
     if request.method == 'POST':
-        query = request.form.get('query', '').strip()
-        field = request.form.get('field', search_fields[0] if search_fields else df.columns[0])
-        if field not in df.columns:
-            field = search_fields[0]
-        if query:
-            results = df[df[field].astype(str).str.contains(query, case=False, na=False)]
+      query = request.form.get('query', '').strip()
+      field = request.form.get('field', search_fields[0] if search_fields else df.columns[0])
+      all_fields = request.form.get('all_fields', '') == 'on'
+      if field not in df.columns:
+        field = search_fields[0]
+      if query:
+        if all_fields:
+          mask = df.apply(lambda row: row.astype(str).str.contains(query, case=False, na=False).any(), axis=1)
+          results = df[mask]
+        else:
+          results = df[df[field].astype(str).str.contains(query, case=False, na=False)]
 
     content = f'<h2>Search {collection.capitalize()}</h2>'
     content += '<form class="search-form" method="post">'
-    if collection == 'films':
-        content += '<label for="field">Search field</label>'
-        content += '<select id="field" name="field">'
-        for option in search_fields:
-            selected = ' selected' if option == field else ''
-            content += f'<option value="{option}"{selected}>{option}</option>'
-        content += '</select>'
+    content += '<label for="field">Search field</label>'
+    content += '<select id="field" name="field">'
+    for option in search_fields:
+      selected = ' selected' if option == field else ''
+      content += f'<option value="{option}"{selected}>{option}</option>'
+    content += '</select>'
     content += '<label for="query">Search text</label>'
     content += f'<input id="query" name="query" value="{query}" placeholder="Enter a search term" required>'
+    content += '<label style="margin-top:8px"><input type="checkbox" name="all_fields"> Search across all fields</label>'
+    content += '<div style="margin-top:12px">'
+    # Graph links (film genres, game systems)
+    if collection == 'films':
+      content += '<a class="button-link" href="/graph/films/genres">Show Genre Graph</a>'
+    else:
+      content += '<a class="button-link" href="/graph/games/systems">Show System Graph</a>'
+    content += '</div>'
     content += '<button type="submit">Search</button>'
     content += '</form>'
 
@@ -371,7 +464,79 @@ def search_collection(collection):
     return render_html(content)
 
 
+@app.route('/add/film', methods=['GET', 'POST'])
+def add_film():
+    df, path = load_films()
+    # Determine fields to prompt for
+    if df is not None:
+        fields = list(get_search_fields(df))
+    else:
+        fields = ['Title', 'Genre', 'Release', 'Year', 'Director', 'Rating']
+
+    if request.method == 'POST':
+        row = {f: request.form.get(f, '').strip() for f in fields}
+        dest = path or FILM_CSV_CANDIDATES[0]
+        try:
+            append_row_to_csv(dest, row, columns=fields)
+            content = '<h2>Add Film</h2>'
+            content += f'<p>Added film to <strong>{dest}</strong>.</p>'
+            content += '<p><a class="button-link" href="/films">View Films</a> <a class="button-link" href="/add/film">Add Another</a></p>'
+            return render_html(content)
+        except Exception as exc:
+            return render_html(f'<h2>Add Film</h2><p class="fallback">Error saving film: {exc}</p>')
+
+    # render form
+    content = '<h2>Add Film</h2>'
+    content += '<form class="search-form" method="post">'
+    for f in fields:
+        content += f'<label for="{f}">{f}</label>'
+        content += f'<input id="{f}" name="{f}" placeholder="{f}">'
+    content += '<button type="submit">Add Film</button>'
+    content += '</form>'
+    return render_html(content)
+
+
+@app.route('/add/game', methods=['GET', 'POST'])
+def add_game():
+  # Load existing game CSV to discover columns
+  games_df, sources = load_games()
+  if games_df is not None:
+    fields = list(games_df.columns)
+  else:
+    fields = ['Game', 'System']
+
+  if request.method == 'POST':
+    row = {f: request.form.get(f, '').strip() for f in fields}
+    # Choose destination: first existing game CSV or default
+    dest = None
+    for candidate in GAME_CSV_CANDIDATES:
+      if os.path.isfile(candidate) and detect_csv_type(candidate) == 'game':
+        dest = candidate
+        break
+    if not dest:
+      dest = GAME_CSV_CANDIDATES[0]
+
+    try:
+      append_row_to_csv(dest, row, columns=fields)
+      content = '<h2>Add Game</h2>'
+      content += f'<p>Added game to <strong>{dest}</strong>.</p>'
+      content += '<p><a class="button-link" href="/games">View Games</a> <a class="button-link" href="/add/game">Add Another</a></p>'
+      return render_html(content)
+    except Exception as exc:
+      return render_html(f'<h2>Add Game</h2><p class="fallback">Error saving game: {exc}</p>')
+
+  # render form
+  content = '<h2>Add Game</h2>'
+  content += '<form class="search-form" method="post">'
+  for f in fields:
+    content += f'<label for="{f}">{f}</label>'
+    content += f'<input id="{f}" name="{f}" placeholder="{f}">'
+  content += '<button type="submit">Add Game</button>'
+  content += '</form>'
+  return render_html(content)
+
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5001))
     debug = os.environ.get('FLASK_DEBUG', '0') == '1'
     app.run(host='0.0.0.0', port=port, debug=debug)
