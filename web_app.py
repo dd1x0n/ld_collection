@@ -1,9 +1,7 @@
 import os
-import io
 import pandas as pd
-from flask import Flask, render_template_string, request, send_file, make_response
+from flask import Flask, render_template_string, request
 from markupsafe import Markup
-from matplotlib import pyplot as plt
 
 app = Flask(__name__)
 
@@ -19,15 +17,16 @@ BASE_TEMPLATE = '''<!doctype html>
   <style>
     :root {
       color-scheme: light;
-      --bg: #f0f4fb;
+      --bg: #f7f8fc;
       --surface: #ffffff;
-      --surface-strong: #eef4ff;
-      --primary: #114b8b;
-      --primary-soft: #dce7ff;
-      --text: #1f2937;
-      --muted: #475569;
-      --border: #c7d2e5;
-      --accent: #0f5ebb;
+      --surface-strong: #f0f6ff;
+      --primary: #123962;
+      --primary-soft: #d9e7ff;
+      --text: #172b4d;
+      --muted: #4d6175;
+      --border: #c2d0e4;
+      --accent: #1565d8;
+      --accent-soft: #e5efff;
     }
     * { box-sizing: border-box; }
     body {
@@ -316,68 +315,6 @@ def home():
     return render_html(content)
 
 
-@app.route('/graph/films/genres')
-def graph_films_genres():
-    df, path = load_films()
-    if df is None:
-        return render_html('<h2>Genre Graph</h2><p class="fallback">No film CSV could be loaded.</p>')
-
-    genre_counter = {}
-    if 'Genre' in df.columns:
-        for genre in df['Genre'].dropna():
-            for g in [g.strip() for g in str(genre).split(',') if g.strip()]:
-                genre_counter[g] = genre_counter.get(g, 0) + 1
-
-    if not genre_counter:
-        return render_html('<h2>Genre Graph</h2><p class="fallback">No genre data available to plot.</p>')
-
-    items = sorted(genre_counter.items(), key=lambda x: x[1], reverse=True)[:10]
-    genres, counts = zip(*items)
-    plt.style.use('bmh')
-    fig, ax = plt.subplots(figsize=(8, max(3, len(genres) * 0.4)))
-    ax.barh(list(reversed(genres)), list(reversed(counts)))
-    ax.set_title('Top Film Genres')
-    ax.set_xlabel('Number of Films')
-    plt.tight_layout()
-
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png')
-    plt.close(fig)
-    buf.seek(0)
-    return send_file(buf, mimetype='image/png')
-
-
-@app.route('/graph/games/systems')
-def graph_games_systems():
-    df, sources = load_games()
-    if df is None:
-        return render_html('<h2>System Graph</h2><p class="fallback">No game CSV could be loaded.</p>')
-
-    system_counter = {}
-    if 'System' in df.columns:
-        for system in df['System'].dropna():
-            for s in [s.strip() for s in str(system).split(',') if s.strip()]:
-                system_counter[s] = system_counter.get(s, 0) + 1
-
-    if not system_counter:
-        return render_html('<h2>System Graph</h2><p class="fallback">No system data available to plot.</p>')
-
-    items = sorted(system_counter.items(), key=lambda x: x[1], reverse=True)[:15]
-    systems, counts = zip(*items)
-    plt.style.use('bmh')
-    fig, ax = plt.subplots(figsize=(8, max(3, len(systems) * 0.3)))
-    ax.barh(list(reversed(systems)), list(reversed(counts)))
-    ax.set_title('Top Game Systems')
-    ax.set_xlabel('Number of Games')
-    plt.tight_layout()
-
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png')
-    plt.close(fig)
-    buf.seek(0)
-    return send_file(buf, mimetype='image/png')
-
-
 @app.route('/films')
 def films():
     df, path = load_films()
@@ -442,13 +379,6 @@ def search_collection(collection):
     content += '<label for="query">Search text</label>'
     content += f'<input id="query" name="query" value="{query}" placeholder="Enter a search term" required>'
     content += '<label style="margin-top:8px"><input type="checkbox" name="all_fields"> Search across all fields</label>'
-    content += '<div style="margin-top:12px">'
-    # Graph links (film genres, game systems)
-    if collection == 'films':
-      content += '<a class="button-link" href="/graph/films/genres">Show Genre Graph</a>'
-    else:
-      content += '<a class="button-link" href="/graph/games/systems">Show System Graph</a>'
-    content += '</div>'
     content += '<button type="submit">Search</button>'
     content += '</form>'
 

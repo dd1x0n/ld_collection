@@ -2,7 +2,6 @@ import os
 from collections import Counter
 
 import pandas as pd
-from matplotlib import pyplot as plt
 
 W = '\033[0m'
 R = '\033[31m'
@@ -16,6 +15,9 @@ GAME_CSV_CANDIDATES = ['games_2026.csv', 'games.csv', 'collection.csv']
 
 FILM_CSV_PATH = None
 GAME_CSV_PATHS = []
+
+FILM_FIELDS = ['Title', 'Genre', 'Release', 'Director', 'Rating']
+GAME_FIELDS = ['Game', 'System']
 
 
 def detect_csv_type(path):
@@ -66,12 +68,12 @@ def menu():
     print(G + ' - 2 Search film by title')
     print(P + ' - 3 Search films by genre')
     print(W + ' - 4 Search films by release year')
-    print(B + ' - 5 Graph film genre popularity')
+    print(B + ' - 5 Add a new film')
     # Game-related actions
     print(G + f' - 6 View full video game collection ({", ".join(GAME_CSV_PATHS) or "none"})')
     print(O + ' - 7 Search video game by title')
     print(G + ' - 8 Total number of video games')
-    print(P + ' - 9 Graph video games by system')
+    print(P + ' - 9 Add a new game')
     print(B + ' - 10 Load a new games CSV file')
     print("<--------->")
     print(R + ' - 0 Quit')
@@ -199,48 +201,76 @@ def search_films_by_year():
     print(result.to_string(index=False) if not result.empty else R + 'No films found for that release year.')
 
 
-def plot_film_genres():
-    df = load_films()
-    if df is None:
+def append_csv_row(path, row_dict, columns=None):
+    df_row = pd.DataFrame([row_dict])
+    write_header = not os.path.isfile(path)
+    if columns:
+        df_row = df_row.reindex(columns=columns)
+    df_row.to_csv(path, index=False, mode='a' if not write_header else 'w', header=write_header, encoding='utf8')
+
+
+def add_film():
+    global FILM_CSV_PATH
+    dest = FILM_CSV_PATH or FILM_CSV_CANDIDATES[0]
+    print()
+    print(G + 'Add a new film to the collection')
+    film_data = {}
+    for field in FILM_FIELDS:
+        while True:
+            value = input(f'Enter {field}: ').strip()
+            if field == 'Title' and not value:
+                print(R + 'Title is required. Please enter a value.')
+                continue
+            film_data[field] = value
+            break
+
+    confirm = input(f'Save this film to "{dest}"? (y/n): ').strip().lower()
+    if confirm != 'y':
+        print(O + 'Film entry canceled.')
         return
 
-    genre_counter = Counter()
-    for genre in df['Genre'].dropna():
-        genre_counter.update([g.strip() for g in genre.split(',') if g.strip()])
+    try:
+        append_csv_row(dest, film_data, columns=FILM_FIELDS)
+        print(G + f'Added film to {dest}')
+        if FILM_CSV_PATH is None:
+            FILM_CSV_PATH = dest
+    except Exception as exc:
+        print(R + f'Error saving film: {exc}')
 
-    if not genre_counter:
-        print(R + 'No genre data available to plot.')
+
+def add_game():
+    dest = None
+    for candidate in GAME_CSV_PATHS:
+        if os.path.isfile(candidate) and detect_csv_type(candidate) == 'game':
+            dest = candidate
+            break
+    if not dest:
+        dest = GAME_CSV_CANDIDATES[0]
+
+    print()
+    print(G + 'Add a new game to the collection')
+    game_data = {}
+    for field in GAME_FIELDS:
+        while True:
+            value = input(f'Enter {field}: ').strip()
+            if field == 'Game' and not value:
+                print(R + 'Game title is required. Please enter a value.')
+                continue
+            game_data[field] = value
+            break
+
+    confirm = input(f'Save this game to "{dest}"? (y/n): ').strip().lower()
+    if confirm != 'y':
+        print(O + 'Game entry canceled.')
         return
 
-    genres, counts = zip(*genre_counter.most_common(10))
-    plt.style.use('bmh')
-    plt.barh(list(reversed(genres)), list(reversed(counts)))
-    plt.title('Top 10 Most Popular Film Genres')
-    plt.xlabel('Number of Films')
-    plt.tight_layout()
-    plt.show()
-
-
-def plot_game_systems():
-    df = load_games()
-    if df is None:
-        return
-
-    system_counter = Counter()
-    for system in df['System'].dropna():
-        system_counter.update([s.strip() for s in system.split(',') if s.strip()])
-
-    if not system_counter:
-        print(R + 'No system data available to plot.')
-        return
-
-    systems, counts = zip(*system_counter.most_common(15))
-    plt.style.use('bmh')
-    plt.barh(list(reversed(systems)), list(reversed(counts)))
-    plt.title('Video Game Systems with the Most Games')
-    plt.xlabel('Number of Games')
-    plt.tight_layout()
-    plt.show()
+    try:
+        append_csv_row(dest, game_data, columns=GAME_FIELDS)
+        print(G + f'Added game to {dest}')
+        if dest not in GAME_CSV_PATHS:
+            GAME_CSV_PATHS.append(dest)
+    except Exception as exc:
+        print(R + f'Error saving game: {exc}')
 
 
 def view_games():
@@ -282,7 +312,7 @@ def main():
         elif option == 4:
             search_films_by_year()
         elif option == 5:
-            plot_film_genres()
+            add_film()
         # Game actions
         elif option == 6:
             view_games()
@@ -291,7 +321,7 @@ def main():
         elif option == 8:
             total_video_games()
         elif option == 9:
-            plot_game_systems()
+            add_game()
         elif option == 10:
             set_games_csv()
         else:

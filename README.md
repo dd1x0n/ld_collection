@@ -28,6 +28,14 @@ This repository includes `requirements.txt` and `Procfile` to make deployment ea
 
 - Local deployment: install dependencies, then run `python web_app.py`.
 - Cloud deployment: use `gunicorn web_app:app` as the startup command.
+- Docker / TrueNAS local access: build the image and run the container with port mapping.
+
+Example Docker commands:
+
+    docker build -t ld-collection .
+    docker run -p 5001:5001 -e PORT=5001 -v "$PWD":/app ld-collection
+
+This exposes the app on `http://127.0.0.1:5001` and makes the repository files available inside the container.
 
 Example Render settings:
 - Build command: `pip install -r requirements.txt`
