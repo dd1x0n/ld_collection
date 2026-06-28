@@ -63,22 +63,26 @@ def menu():
     print("")
     print(W + "*********************************************************")
     print("")
-    print(P + "             ENTER: 0 - 11 to choose an action           ")
+    print(P + "             ENTER: 0 - 12 to choose an action           ")
     print("")
     print(W + "*********************************************************")
     print("")
+    # Film-related actions
     print(B + f' - 1 View full film collection ({FILM_CSV_PATH or "none"})')
     print(G + ' - 2 Search film by title')
-    print(O + ' - 3 Total number of video games')
-    print(P + ' - 4 Search films by genre')
-    print(W + ' - 5 Search films by release year')
-    print(B + ' - 6 Graph film genre popularity')
-    print(G + ' - 7 Graph video games by system')
-    print(O + f' - 8 View full video game collection ({", ".join(GAME_CSV_PATHS) or "none"})')
-    print(P + ' - 9 Search video game by title')
+    print(P + ' - 3 Search films by genre')
+    print(W + ' - 4 Search films by release year')
+    print(B + ' - 5 Graph film genre popularity')
+    print("")
+    # Game-related actions
+    print(G + f' - 6 View full video game collection ({", ".join(GAME_CSV_PATHS) or "none"})')
+    print(O + ' - 7 Search video game by title')
+    print(G + ' - 8 Total number of video games')
+    print(P + ' - 9 Graph video games by system')
     print(B + ' - 10 Load a new games CSV file')
     print(G + ' - 11 Combine available game CSVs into merged_games.csv')
     print(P + ' - 12 Search Games_List.csv by product name')
+    print("")
     print(R + ' - 0 Quit')
     print(W + '_________________________________________________________')
     print("")
@@ -334,24 +338,26 @@ def main():
         if option == 0:
             print(G + 'Thanks for checking it out, PEACE!')
             break
+        # Film actions
         elif option == 1:
             view_films()
         elif option == 2:
             search_films_by_title()
         elif option == 3:
-            total_video_games()
-        elif option == 4:
             search_films_by_genre()
-        elif option == 5:
+        elif option == 4:
             search_films_by_year()
-        elif option == 6:
+        elif option == 5:
             plot_film_genres()
-        elif option == 7:
-            plot_game_systems()
-        elif option == 8:
+        # Game actions
+        elif option == 6:
             view_games()
-        elif option == 9:
+        elif option == 7:
             search_games_by_title()
+        elif option == 8:
+            total_video_games()
+        elif option == 9:
+            plot_game_systems()
         elif option == 10:
             set_games_csv()
         elif option == 11:
