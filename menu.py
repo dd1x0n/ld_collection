@@ -12,12 +12,10 @@ B = '\033[34m'
 P = '\033[35m'
 
 FILM_CSV_CANDIDATES = ['ld_collection.csv', 'LD_collection.csv', 'collection.csv']
-GAME_CSV_CANDIDATES = ['games.csv', 'collection.csv']
-MERGED_GAME_CSV = 'merged_games.csv'
+GAME_CSV_CANDIDATES = ['games_2026.csv', 'games.csv', 'collection.csv']
 
 FILM_CSV_PATH = None
 GAME_CSV_PATHS = []
-GAMES_LIST_PATH = None
 
 
 def detect_csv_type(path):
@@ -48,10 +46,6 @@ def initialize_paths():
         if os.path.isfile(candidate) and detect_csv_type(candidate) == 'game':
             GAME_CSV_PATHS.append(candidate)
 
-    # Detect Games_List.csv (different header structure)
-    if os.path.isfile('Games_List.csv'):
-        GAMES_LIST_PATH = 'Games_List.csv'
-
     if not GAME_CSV_PATHS:
         print(R + 'Warning: No game CSV file detected from:', GAME_CSV_CANDIDATES)
 
@@ -63,7 +57,7 @@ def menu():
     print("")
     print(W + "*********************************************************")
     print("")
-    print(P + "             ENTER: 0 - 12 to choose an action           ")
+    print(P + "             ENTER: 0 - 10 to choose an action           ")
     print("")
     print(W + "*********************************************************")
     print("")
@@ -73,16 +67,13 @@ def menu():
     print(P + ' - 3 Search films by genre')
     print(W + ' - 4 Search films by release year')
     print(B + ' - 5 Graph film genre popularity')
-    print("")
     # Game-related actions
     print(G + f' - 6 View full video game collection ({", ".join(GAME_CSV_PATHS) or "none"})')
     print(O + ' - 7 Search video game by title')
     print(G + ' - 8 Total number of video games')
     print(P + ' - 9 Graph video games by system')
     print(B + ' - 10 Load a new games CSV file')
-    print(G + ' - 11 Combine available game CSVs into merged_games.csv')
-    print(P + ' - 12 Search Games_List.csv by product name')
-    print("")
+    print("<--------->")
     print(R + ' - 0 Quit')
     print(W + '_________________________________________________________')
     print("")
@@ -120,43 +111,6 @@ def load_game_file(path):
         return df
 
     return None
-
-
-def load_games_list():
-    if GAMES_LIST_PATH is None:
-        print(R + 'No Games_List.csv detected in project.')
-        return None
-
-    try:
-        df = pd.read_csv(GAMES_LIST_PATH, encoding='utf8')
-    except Exception as exc:
-        print(R + f'Error reading {GAMES_LIST_PATH}: {exc}')
-        return None
-
-    # Normalize columns: product-name -> Game, console-name -> System
-    df = df.rename(columns={
-        'product-name': 'Game',
-        'console-name': 'System'
-    })
-
-    if 'Game' not in df.columns or 'System' not in df.columns:
-        print(R + f'{GAMES_LIST_PATH} does not contain expected columns.')
-        return None
-
-    return df[['Game', 'System']].copy()
-
-
-def search_games_list_by_title():
-    df = load_games_list()
-    if df is None:
-        return
-
-    query = input('Enter product name to search in Games_List.csv: ').strip()
-    result = df[df['Game'] == query]
-    if result.empty:
-        print(R + 'No match found in Games_List.csv')
-    else:
-        print(result.to_string(index=False))
 
 
 def load_games():
@@ -197,26 +151,6 @@ def set_games_csv():
 
     GAME_CSV_PATHS = [path]
     print(G + f'Loaded new games CSV: {path}')
-
-
-def combine_game_csvs():
-    global GAME_CSV_PATHS
-    if len(GAME_CSV_PATHS) < 2:
-        print(R + 'Need at least two detected game CSV sources to combine.')
-        print(R + f'Current game sources: {GAME_CSV_PATHS}')
-        return
-
-    combined = load_games()
-    if combined is None:
-        print(R + 'Unable to combine game CSVs.')
-        return
-
-    try:
-        combined.to_csv(MERGED_GAME_CSV, index=False, encoding='utf8')
-        GAME_CSV_PATHS = [MERGED_GAME_CSV]
-        print(G + f'Combined game CSVs into {MERGED_GAME_CSV}')
-    except Exception as exc:
-        print(R + f'Error writing combined CSV: {exc}')
 
 
 def view_films():
@@ -332,7 +266,7 @@ def main():
         try:
             option = int(input('Enter your choice: ').strip())
         except ValueError:
-            print(R + 'Invalid input. Enter a number between 0 and 11.')
+            print(R + 'Invalid input. Enter a number between 0 and 10.')
             continue
 
         if option == 0:
@@ -360,10 +294,6 @@ def main():
             plot_game_systems()
         elif option == 10:
             set_games_csv()
-        elif option == 11:
-            combine_game_csvs()
-        elif option == 12:
-            search_games_list_by_title()
         else:
             print(R + 'Not an option hoss!')
 

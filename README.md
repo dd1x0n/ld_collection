@@ -6,9 +6,39 @@ A console application that allows users to search, graph and read CSV dataframes
 
 # How to run:
 
-Users must have Pandas & matplotlib installed if not already on machine. Can be installed with pip (or your preferred package manager) via [pip install pandas] & [pip install matplotlib]
+Users must have pandas installed if not already on their machine. Install the required Python packages with:
 
-Users simply need to navigate to menu.py, and run application via 'python menu.py' (or 'python3 menu.py' if their system requires it).
+    python3 -m pip install -r requirements.txt
+
+From the repository root, run the console application with:
+
+    python menu.py
+
+or run the web frontend with:
+
+    python web_app.py
+
+Then open http://127.0.0.1:5000/ in your browser.
+
+The web app automatically detects CSV files in the repository root, including `ld_collection.csv`, `LD_collection.csv`, `collection.csv`, `games_2026.csv`, and `games.csv`.
+
+## Deploying the web app
+
+This repository includes `requirements.txt` and `Procfile` to make deployment easier on platforms like Heroku or Render.
+
+- Local deployment: install dependencies, then run `python web_app.py`.
+- Cloud deployment: use `gunicorn web_app:app` as the startup command.
+
+Example Render settings:
+- Build command: `pip install -r requirements.txt`
+- Start command: `gunicorn web_app:app`
+
+Example Heroku commands:
+
+    heroku create
+    git push heroku HEAD:main
+
+The app listens on the port provided by the host environment via the `PORT` variable.
 
 application is hosted at  https://github.com/dd1x0n/ld_collection.git
 
