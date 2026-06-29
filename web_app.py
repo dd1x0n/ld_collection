@@ -1,4 +1,6 @@
 import os
+import urllib.parse
+import html
 import pandas as pd
 from flask import Flask, render_template_string, request
 from markupsafe import Markup
@@ -13,7 +15,7 @@ BASE_TEMPLATE = '''<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LD Collection</title>
+  <title>The Collection</title>
   <style>
     :root {
       color-scheme: light;
@@ -31,6 +33,7 @@ BASE_TEMPLATE = '''<!doctype html>
     * { box-sizing: border-box; }
     body {
       margin: 0;
+      font-size: 0.95rem;
       font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: radial-gradient(circle at top left, #e8f0ff 0%, var(--bg) 45%);
       color: var(--text);
@@ -141,6 +144,7 @@ BASE_TEMPLATE = '''<!doctype html>
     .search-form button { margin-top: 16px; }
     table {
       width: 100%;
+      min-width: 940px;
       border-collapse: collapse;
       margin-top: 22px;
       font-size: 0.95rem;
@@ -240,6 +244,21 @@ def load_game_file_v2(path):
     return df.copy()
 
 
+def normalize_game_price_columns(df):
+    price_keys = {
+        'price-in-pennies',
+        'cost-basis-in-pennies',
+        'price',
+        'cost',
+        'amount',
+        'value',
+    }
+    for col in df.columns:
+        key = str(col).strip().lower()
+        if key in price_keys or key.endswith('-in-pennies'):
+            df[col] = df[col].apply(pennies_to_dollars)
+
+
 def load_games():
   frames = []
   sources = []
@@ -257,6 +276,7 @@ def load_games():
 
   result = pd.concat(frames, ignore_index=True, sort=False)
   result.drop_duplicates(inplace=True)
+  normalize_game_price_columns(result)
   return result, sources
 
 
@@ -274,6 +294,34 @@ def render_html(content):
     return render_template_string(BASE_TEMPLATE, content=Markup(content))
 
 
+def wiki_url(value):
+    if not value:
+        return '#'
+    query = str(value).strip().replace(' ', '_')
+    return 'https://en.wikipedia.org/wiki/' + urllib.parse.quote(query, safe='_/')
+
+
+def pennies_to_dollars(value):
+    if pd.isna(value) or str(value).strip() == '':
+        return ''
+
+    raw = str(value).strip()
+    raw = raw.replace('$', '').replace('£', '').replace(',', '')
+
+    if raw.isdigit():
+        cents = int(raw)
+        return f'${cents/100:,.2f}'
+
+    try:
+        amt = float(raw)
+    except ValueError:
+        return html.escape(raw)
+
+    if '.' not in raw and abs(amt) >= 100:
+        return f'${amt/100:,.2f}'
+    return f'${amt:,.2f}'
+
+
 def render_collection_table(df, caption=None, base_url='', current_sort=None, current_order='asc'):
   # Build a table with clickable headers that toggle sort order.
   def _col_link(col):
@@ -282,30 +330,36 @@ def render_collection_table(df, caption=None, base_url='', current_sort=None, cu
       return f'{base_url}?sort={col}&order={next_order}'
     return f'?sort={col}&order={next_order}'
 
-  html = '<div class="table-wrapper">'
-  # Header
-  html += '<table class="collection-table">'
-  html += '<thead><tr>'
+  html_content = '<div class="table-wrapper">'
+  html_content += '<table class="collection-table">'
+  html_content += '<thead><tr>'
   for col in df.columns:
     indicator = ''
     if current_sort == col:
       indicator = ' ▲' if current_order == 'asc' else ' ▼'
     link = _col_link(col)
-    html += f'<th><a href="{link}">{col}{indicator}</a></th>'
-  html += '</tr></thead>'
-  # Body
-  html += '<tbody>'
+    html_content += f'<th><a href="{link}">{html.escape(str(col))}{indicator}</a></th>'
+  html_content += '</tr></thead>'
+  html_content += '<tbody>'
   for _, row in df.fillna('').iterrows():
-    html += '<tr>'
+    html_content += '<tr>'
     for col in df.columns:
-      cell = str(row[col])
-      html += f'<td>{cell}</td>'
-    html += '</tr>'
-  html += '</tbody></table>'
-  html += '</div>'
+      cell = row[col]
+      if col in ('Title', 'Game', 'product-name', 'Product Name'):
+        text = html.escape(str(cell))
+        if text:
+          cell_html = f'<a href="{wiki_url(cell)}" target="_blank" rel="noopener">{text}</a>'
+        else:
+          cell_html = ''
+      else:
+        cell_html = html.escape(str(cell))
+      html_content += f'<td>{cell_html}</td>'
+    html_content += '</tr>'
+  html_content += '</tbody></table>'
+  html_content += '</div>'
   if caption:
-    html = f'<p>{caption}</p>' + html
-  return html
+    html_content = f'<p>{caption}</p>' + html_content
+  return html_content
 
 
 def append_row_to_csv(path, row_dict, columns=None):
@@ -351,9 +405,26 @@ def home():
     return render_html(content)
 
 
-@app.route('/films')
+@app.route('/films', methods=['GET', 'POST'])
 def films():
     df, path = load_films()
+    posted = False
+    message = ''
+    if request.method == 'POST':
+        title = request.form.get('quick_add_title', '').strip()
+        if title:
+            fields = list(df.columns) if df is not None else ['Title']
+            dest = path or FILM_CSV_CANDIDATES[0]
+            row = {f: '' for f in fields}
+            row['Title'] = title
+            try:
+                append_row_to_csv(dest, row, columns=fields)
+                posted = True
+                message = f'Added film <strong>{html.escape(title)}</strong> to <strong>{dest}</strong>.'
+                df, path = load_films()
+            except Exception as exc:
+                return render_html(f'<h2>Film Collection</h2><p class="fallback">Error saving film: {exc}</p>')
+
     if df is None:
         return render_html('<h2>Film Collection</h2><p class="fallback">No film CSV could be loaded. Check that one of ld_collection.csv, LD_collection.csv, or collection.csv exists with Title and Genre columns.</p>')
 
@@ -361,20 +432,49 @@ def films():
     sort = request.args.get('sort')
     order = request.args.get('order', 'asc')
     if sort in df.columns:
-        # Attempt numeric conversion for smart sorting
         col_series = pd.to_numeric(df[sort], errors='coerce')
         if col_series.notna().sum() > 0:
             df[sort] = col_series
         df = df.sort_values(by=sort, ascending=(order == 'asc'))
 
     content = f'<h2>Film Collection</h2><p>Loaded from: <strong>{path}</strong></p>'
+    content += '<div class="callout">Quick add a film title:</div>'
+    content += '<form class="search-form" method="post">'
+    content += '<label for="quick_add_title">Title</label>'
+    content += '<input id="quick_add_title" name="quick_add_title" placeholder="Enter film title" required>'
+    content += '<button type="submit">Quick Add Film</button>'
+    content += '</form>'
+    if posted:
+        content += f'<div class="notice">{message}</div>'
     content += render_collection_table(df, base_url='/films', current_sort=sort, current_order=order)
     return render_html(content)
 
 
-@app.route('/games')
+@app.route('/games', methods=['GET', 'POST'])
 def games():
     df, sources = load_games()
+    posted = False
+    message = ''
+    if request.method == 'POST':
+        title = request.form.get('quick_add_title', '').strip()
+        if title:
+            fields = list(df.columns) if df is not None else ['Game', 'System']
+            dest = None
+            for candidate in GAME_CSV_CANDIDATES:
+                if os.path.isfile(candidate) and detect_csv_type(candidate) == 'game':
+                    dest = candidate
+                    break
+            dest = dest or GAME_CSV_CANDIDATES[0]
+            row = {f: '' for f in fields}
+            row['Game'] = title
+            try:
+                append_row_to_csv(dest, row, columns=fields)
+                posted = True
+                message = f'Added game <strong>{html.escape(title)}</strong> to <strong>{dest}</strong>.'
+                df, sources = load_games()
+            except Exception as exc:
+                return render_html(f'<h2>Game Collection</h2><p class="fallback">Error saving game: {exc}</p>')
+
     if df is None:
         return render_html('<h2>Game Collection</h2><p class="fallback">No game CSV could be loaded. Check that games_2026.csv, games.csv, or collection.csv exists with Game and System columns.</p>')
 
@@ -388,6 +488,14 @@ def games():
         df = df.sort_values(by=sort, ascending=(order == 'asc'))
 
     content = f'<h2>Game Collection</h2><p>Loaded from: <strong>{", ".join(sources)}</strong></p>'
+    content += '<div class="callout">Quick add a game title:</div>'
+    content += '<form class="search-form" method="post">'
+    content += '<label for="quick_add_title">Game title</label>'
+    content += '<input id="quick_add_title" name="quick_add_title" placeholder="Enter game title" required>'
+    content += '<button type="submit">Quick Add Game</button>'
+    content += '</form>'
+    if posted:
+        content += f'<div class="notice">{message}</div>'
     content += render_collection_table(df, base_url='/games', current_sort=sort, current_order=order)
     return render_html(content)
 
